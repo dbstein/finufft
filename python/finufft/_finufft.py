@@ -124,6 +124,22 @@ _executef = lib.finufftf_execute
 _executef.argtypes = [c_void_p, c_void_p, c_void_p]
 _executef.restype = c_int
 
+_execute_type2_part1 = lib.finufft_execute_type2_part1
+_execute_type2_part1.argtypes = [c_void_p, c_void_p]
+_execute_type2_part1.restype = c_int
+
+_execute_type2_part1f = lib.finufftf_execute_type2_part1
+_execute_type2_part1f.argtypes = [c_void_p, c_void_p]
+_execute_type2_part1f.restype = c_int
+
+_execute_type2_part2 = lib.finufft_execute_type2_part2
+_execute_type2_part2.argtypes = [c_void_p, c_void_p]
+_execute_type2_part2.restype = c_int
+
+_execute_type2_part2f = lib.finufftf_execute_type2_part2
+_execute_type2_part2f.argtypes = [c_void_p, c_void_p]
+_execute_type2_part2f.restype = c_int
+
 _destroy = lib.finufft_destroy
 _destroy.argtypes = [c_void_p]
 _destroy.restype = c_int

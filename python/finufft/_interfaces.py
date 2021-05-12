@@ -119,11 +119,15 @@ class Plan:
             self._makeplan = _finufft._makeplanf
             self._setpts = _finufft._setptsf
             self._execute = _finufft._executef
+            self._execute_type2_part1 = _finufft._execute_type2_part1f
+            self._execute_type2_part2 = _finufft._execute_type2_part2f
             self._destroy = _finufft._destroyf
         else:
             self._makeplan = _finufft._makeplan
             self._setpts = _finufft._setpts
             self._execute = _finufft._execute
+            self._execute_type2_part1 = _finufft._execute_type2_part1
+            self._execute_type2_part2 = _finufft._execute_type2_part2
             self._destroy = _finufft._destroy
 
         ier = self._makeplan(nufft_type, dim, n_modes, isign, n_trans, eps,
@@ -297,13 +301,103 @@ class Plan:
             _copy(_out,out)
             return out
 
+    ### execute type2_part1
+    def execute_type2_part1(self,data):
+        r"""
+        Execute the plan
+
+        Peforms part 1 of a type-2 NUFFT (everything except the interp)
+        setpts need not be called to run this
+
+        The input is an array of size ``n_modes``. If ``n_transf`` is greater than one,
+        ``n_transf`` inputs are expected, stacked along the first axis.
+
+        Args:
+            data    (complex[n_transf, n_modes]): The input source modes.
+        """
+        if self.is_single:
+            _data = _cchkf(data)
+        else:
+            _data = _cchk(data)
+
+        tp = self.type
+        assert tp == 2, 'execute_type2_part1 can only be called for type-2 NUFFT plans'
+        n_trans = self.n_trans
+        dim = self.dim
+
+        ms = self.n_modes[0]
+        mt = self.n_modes[1]
+        mu = self.n_modes[2]
+
+        # input shape and size check
+        valid_fshape(data.shape,n_trans,dim,ms,mt,mu,None,2)
+
+        # call execute based on type and precision type
+        ier = self._execute_type2_part1(self.inner_plan, 
+                                _data.ctypes.data_as(c_void_p))
+
+        # check error
+        if ier != 0:
+            err_handler(ier)
+
+    ### execute
+    def execute_type2_part2(self,out=None):
+        r"""
+        Execute the plan
+
+        Peforms part 2 of a type-2 NUFFT with the points set by ``setpts''
+        This does only the interp, and assumes execute_type2_part1
+        has been called
+
+        Args:
+            out     (complex[n_transf, M], optional): The array where the
+                    output is stored. Must be of the right size.
+
+        Returns:
+            complex[n_transf, M]: The output array of the transform(s).
+        """
+        if self.is_single:
+            _out = _cchkf(out)
+        else:
+            _out = _cchk(out)
+
+        tp = self.type
+        assert tp == 2, 'execute_type2_part2 can only be called for type-2 NUFFT plans'
+        n_trans = self.n_trans
+        nj = self.nj
+        dim = self.dim
+
+        # out shape and size check
+        if out is not None:
+            valid_cshape(out.shape,nj,n_trans)
+
+        # allocate out if None
+        if out is None:
+            if self.is_single:
+                pdtype=np.complex64
+            else:
+                pdtype=np.complex128
+            _out = np.squeeze(np.zeros([n_trans, nj], dtype=pdtype, order='C'))
+
+        # call execute based on type and precision type
+        ier = self._execute_type2_part2(self.inner_plan,
+                            _out.ctypes.data_as(c_void_p))
+
+        # check error
+        if ier != 0:
+            err_handler(ier)
+
+        # return out
+        if out is None:
+            return _out
+        else:
+            _copy(_out,out)
+            return out
 
     def __del__(self):
         destroy(self)
         self.inner_plan = None
 ### End of Plan class definition
-
-
 
 ### David Stein's functions for checking input and output variables
 def _rchk(x):

@@ -1078,7 +1078,92 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX* cj, CPX* fk){
   
   return 0; 
 }
+// ............ end execute ..................................................
 
+
+// E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1E1
+int FINUFFT_EXECUTE_TYPE2_PART1(FINUFFT_PLAN p, CPX* fk){
+/* See ../docs/cguru.doc for current documentation.
+
+   For given (stack of) coefficients fk, performs NUFFTs with
+   existing (sorted) NU pts and existing plan.
+   Performs pre/post deconvolve and fftw_execute
+   For cases of ntrans>1, performs work in blocks of size up to batchSize.
+   Return value 0 (no error diagnosis yet).
+   Barnett 5/20/20, based on Malleo 2019.
+*/
+  CNTime timer; timer.start();
+  
+  double t_fft = 0.0, t_deconv = 0.0;  // accumulated timing
+  if (p->opts.debug)
+    printf("[%s] start ntrans=%d (%d batches, bsize=%d)...\n", __func__, p->ntrans, p->nbatch, p->batchSize);
+  
+  for (int b=0; b*p->batchSize < p->ntrans; b++) { // .....loop b over batches
+
+    // current batch is either batchSize, or possibly truncated if last one
+    int thisBatchSize = min(p->ntrans - b*p->batchSize, p->batchSize);
+    int bB = b*p->batchSize;         // index of vector, since batchsizes same
+    CPX* fkb = fk + bB*p->N;         // point to batch of mode coeffs
+    if (p->opts.debug>1) printf("[%s] start batch %d (size %d):\n",__func__, b,thisBatchSize);
+    
+    // STEP 1:
+    timer.restart();
+    deconvolveBatch(thisBatchSize, p, fkb);
+    t_deconv += timer.elapsedsec();
+           
+    // STEP 2: call the pre-planned FFT on this batch
+    timer.restart();
+    FFTW_EX(p->fftwPlan);   // if thisBatchSize<batchSize it wastes some flops
+    t_fft += timer.elapsedsec();
+    if (p->opts.debug>1)
+      printf("\tFFTW exec:\t\t%.3g s\n", timer.elapsedsec());
+
+  }                                                   // ........end b loop
+  
+  if (p->opts.debug) {  // report total times in their natural order...
+      printf("[%s] done. tot deconvolve:\t\t%.3g s\n",__func__,t_deconv);
+      printf("               tot FFT:\t\t\t\t%.3g s\n", t_fft);
+  }
+
+  return 0; 
+}
+// ............ end execute_type2_part1 .......................................
+
+// E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2E2
+int FINUFFT_EXECUTE_TYPE2_PART2(FINUFFT_PLAN p, CPX* cj){
+/* See ../docs/cguru.doc for current documentation.
+   Performs interp
+   For cases of ntrans>1, performs work in blocks of size up to batchSize.
+   Return value 0 (no error diagnosis yet).
+   Barnett 5/20/20, based on Malleo 2019.
+*/
+  CNTime timer; timer.start();
+  
+  double t_sprint = 0.0;  // accumulated timing
+  if (p->opts.debug)
+    printf("[%s] start ntrans=%d (%d batches, bsize=%d)...\n", __func__, p->ntrans, p->nbatch, p->batchSize);
+  
+  for (int b=0; b*p->batchSize < p->ntrans; b++) { // .....loop b over batches
+
+    // current batch is either batchSize, or possibly truncated if last one
+    int thisBatchSize = min(p->ntrans - b*p->batchSize, p->batchSize);
+    int bB = b*p->batchSize;         // index of vector, since batchsizes same
+    CPX* cjb = cj + bB*p->nj;        // point to batch of weights
+    if (p->opts.debug>1) printf("[%s] start batch %d (size %d):\n",__func__, b,thisBatchSize);
+    
+    // STEP 3: (varies by type)
+    timer.restart();        
+    spreadinterpSortedBatch(thisBatchSize, p, cjb);
+    t_sprint += timer.elapsedsec(); 
+  }                                                   // ........end b loop
+  
+  if (p->opts.debug) {  // report total times in their natural order...
+    printf("[%s] done. tot interp:\t\t\t%.3g s\n",__func__,t_sprint);
+  }
+
+  return 0; 
+}
+// ............ end execute_type_2_part_2 .....................................
 
 // DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 int FINUFFT_DESTROY(FINUFFT_PLAN p)

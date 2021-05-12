@@ -21,6 +21,8 @@
 #undef FINUFFT_MAKEPLAN
 #undef FINUFFT_SETPTS
 #undef FINUFFT_EXECUTE
+#undef FINUFFT_EXECUTE_TYPE2_PART1
+#undef FINUFFT_EXECUTE_TYPE2_PART2
 #undef FINUFFT_DESTROY
 #undef FINUFFT1D1
 #undef FINUFFT1D1MANY
@@ -46,6 +48,8 @@
 #define FINUFFT_MAKEPLAN finufftf_makeplan
 #define FINUFFT_SETPTS finufftf_setpts
 #define FINUFFT_EXECUTE finufftf_execute
+#define FINUFFT_EXECUTE_TYPE2_PART1 finufftf_execute_type2_part1
+#define FINUFFT_EXECUTE_TYPE2_PART2 finufftf_execute_type2_part2
 #define FINUFFT_DESTROY finufftf_destroy
 #define FINUFFT1D1 finufftf1d1
 #define FINUFFT1D1MANY finufftf1d1many
@@ -70,6 +74,8 @@
 #define FINUFFT_MAKEPLAN finufft_makeplan
 #define FINUFFT_SETPTS finufft_setpts
 #define FINUFFT_EXECUTE finufft_execute
+#define FINUFFT_EXECUTE_TYPE2_PART1 finufft_execute_type2_part1
+#define FINUFFT_EXECUTE_TYPE2_PART2 finufft_execute_type2_part2
 #define FINUFFT_DESTROY finufft_destroy
 #define FINUFFT1D1 finufft1d1
 #define FINUFFT1D1MANY finufft1d1many
@@ -105,6 +111,8 @@ void FINUFFT_DEFAULT_OPTS(nufft_opts *o);
 int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag, int n_transf, FLT tol, FINUFFT_PLAN* plan, nufft_opts* o);
 int FINUFFT_SETPTS(FINUFFT_PLAN plan , BIGINT M, FLT *xj, FLT *yj, FLT *zj, BIGINT N, FLT *s, FLT *t, FLT *u); 
 int FINUFFT_EXECUTE(FINUFFT_PLAN plan, CPX* weights, CPX* result);
+int FINUFFT_EXECUTE_TYPE2_PART1(FINUFFT_PLAN plan, CPX* result);
+int FINUFFT_EXECUTE_TYPE2_PART2(FINUFFT_PLAN plan, CPX* result);
 int FINUFFT_DESTROY(FINUFFT_PLAN plan);
 
 
